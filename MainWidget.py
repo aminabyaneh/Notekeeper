@@ -7,7 +7,7 @@ Created on May 23, 2019
 from PyQt5.QtWidgets import (QPushButton, QPlainTextEdit, QVBoxLayout,
                              QHBoxLayout, QWidget, QGridLayout, QInputDialog,
                              QLineEdit, QMessageBox, QSizePolicy)
-
+from PyQt5.QtCore import QDateTime
 from PyQt5.QtGui import QColor
 from Notebook import Notebook
 from Note import Note
@@ -258,7 +258,30 @@ class MainWidget(QWidget):
         self.layout.addWidget(text_box, 1, 2)
         self.layout.setSpacing(100)
 
-        save_note.clicked.connect(self.show_main_menu)
+        remind_note.clicked.connect(lambda: self.set_note_reminder(note))
+        save_note.clicked.connect(lambda: self.handle_save_note(note, text_box.toPlainText()))
+
+    def handle_save_note(self, note, data):
+        note.data = data
+        self.show_note_menu()
+        # TODO: tell Django about changes in some sort of way
+
+    def set_note_reminder(self, note):
+        date = self.get_text("Reminder", "Enter time(yy mm dd hh mm ss):")
+        if not date:
+            reply = QMessageBox.question(self, 'PyQt5 message', "empty! wanna retry?",
+                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.get_note_and_section_name()
+            else:
+                return
+
+        year, month, day, hour, minute, second = date.split()
+        date = QDateTime()
+
+        # TODO: tell Django to set a timer to send email when the time comes
+
+
 
     def show_sections_list(self):
         # quit button
