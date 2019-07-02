@@ -1,5 +1,6 @@
 class Notebook:
-    def __init__(self):
+    def __init__(self, username=None):
+        self.username = username
         self.sections = []
 
     def add_section(self, section):

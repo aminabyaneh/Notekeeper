@@ -18,7 +18,6 @@ class MainWidget(QWidget):
     def __init__(self):
         self.layout = None
         self.notebook = Notebook()
-        self.notebook.add_section(Section('پیش فرض'))
         self.show_login_page()
 
     @staticmethod
@@ -91,8 +90,9 @@ class MainWidget(QWidget):
             else:
                 return
 
-        # TODO: send username and password to Django for Login
-
+        # TODO: send username and password to Django for Login and load the notebook if exists
+        self.notebook.username = username
+        self.notebook.add_section(Section('پیش فرض'))
         self.show_main_menu()
 
     def handle_signup(self):
@@ -173,9 +173,9 @@ class MainWidget(QWidget):
 
         self.notebook.add_section(Section(section_name))
 
-        # TODO: settle information with django in some way
+        # TODO: settle information with django in some sort of way here or at the end
 
-    def show_note_menu(self):
+    def show_note_menu(self, note=None):
         # reminder button
         remind_note = QPushButton("یادآوری")
         remind_note.setSizePolicy(QSizePolicy.Preferred,
@@ -256,33 +256,54 @@ class MainWidget(QWidget):
         self.layout.addWidget(delete_section, 1, 3)
         self.layout.setSpacing(50)
 
-        # check which button is hit
+        # set action for each button
         for btn in buttons:
-            btn.clicked.connect(self.show_notes_list)
-        
-    def show_notes_list(self, group):
-        # groups most later be created and turn groups and notes into objects
-        self.notes = ['خواب ها', 'رفتار ها', 'مضامین']
-        
+            btn.clicked.connect(lambda: self.show_notes_list(btn.text()))
+        delete_section.clicked.connect(self.handle_delete_section)
+        exit_page.clicked.connect(self.show_main_menu)
+
+    def handle_delete_section(self):
+        section_name = self.get_text("Delete Section", "Section name:")
+        if not section_name:
+            reply = QMessageBox.question(self, 'PyQt5 message', "Section name empty! wanna retry?",
+                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.handle_delete_section()
+            else:
+                return
+
+        self.notebook.remove_section(section_name)
+        self.show_sections_list()
+
+        # TODO: communicate with Django to delete the section on Django in a way
+
+    def show_notes_list(self, section_name):
         # quit button
-        savenote = QPushButton("ایجاد یادداشت جدید")
-        savenote.setSizePolicy(QSizePolicy.Preferred,
+        new_note = QPushButton("ایجاد یادداشت جدید")
+        new_note.setSizePolicy(QSizePolicy.Preferred,
                                QSizePolicy.Preferred)
-        savenote.setStyleSheet("background-color: rgb(228, 210, 86)")
+        new_note.setStyleSheet("background-color: rgb(228, 210, 86)")
 
         # delete button
-        delnote = QPushButton("حذف")
-        delnote.setSizePolicy(QSizePolicy.Preferred,
-                              QSizePolicy.Preferred)
-        delnote.setStyleSheet("background-color: rgb(228, 210, 86)")
-        
+        delete_node = QPushButton("حذف")
+        delete_node.setSizePolicy(QSizePolicy.Preferred,
+                                  QSizePolicy.Preferred)
+        delete_node.setStyleSheet("background-color: rgb(228, 210, 86)")
+
+        for s in self.notebook.sections:
+            if s.name == section_name:
+                section = s
+                break
+
+        buttons = []
         layout_topbar = QVBoxLayout()
-        for note in self.notes:
-            btn = QPushButton(note)
+        for note in section.notes:
+            btn = QPushButton(note.name)
             btn.setSizePolicy(QSizePolicy.Preferred,
                               QSizePolicy.Preferred)
             btn.setStyleSheet("background-color: rgb(228, 210, 86)")
             layout_topbar.addWidget(btn)
+            buttons.append(btn)
         layout_topbar.setSpacing(50)
         
         wid = QWidget()
@@ -293,10 +314,35 @@ class MainWidget(QWidget):
         self.layout.setRowStretch(0, 20)
         self.layout.setRowStretch(1, 5)
         self.layout.addWidget(wid, 0, 2)
-        self.layout.addWidget(savenote, 1, 0)
-        self.layout.addWidget(delnote, 1, 3)
+        self.layout.addWidget(new_note, 1, 0)
+        self.layout.addWidget(delete_node, 1, 3)
         self.layout.setSpacing(50)
-        
+
+        # set action for each node
+        for btn in buttons:
+            btn.clicked.connect(lambda: self.handle_note_view(btn.text()))
+        new_note.clicked.connect(self.show_note_menu)
+        delete_node.clicked.connect(lambda: self.handle_delete_note(section_name))
+
+    def handle_delete_note(self, section_name):
+        note_name = self.get_text("Delete Note", "Note name:")
+        if not note_name:
+            reply = QMessageBox.question(self, 'PyQt5 message', "Section name empty! wanna retry?",
+                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.handle_delete_section()
+            else:
+                return
+
+        for s in self.notebook.sections:
+            if s.name == section_name:
+                s.del_note()
+                break
+
+        self.show_notes_list(section_name)
+
+        # TODO: communicate with Django to delete the section on Django in a way
+
     def clear_layout(self, layout):
         if layout is not None:
             while layout.count():
