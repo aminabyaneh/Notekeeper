@@ -156,7 +156,7 @@ class MainWidget(QWidget):
         self.layout.addWidget(exit_page, 3, 0)
         self.layout.setSpacing(100)
 
-        new_note.clicked.connect(lambda: self.show_note_menu(None))
+        new_note.clicked.connect(lambda: self.show_note_menu(None, None))
         new_group.clicked.connect(self.handle_add_section)
         view_groups.clicked.connect(self.show_sections_list)
         exit_page.clicked.connect(self.quit_app)
@@ -175,7 +175,7 @@ class MainWidget(QWidget):
 
         # TODO: settle information with django in some sort of way here or at the end
 
-    def get_note_and_section_name(self):
+    def get_note_and_section_name(self, section_name):
         note_name = self.get_text("New Note", "Pick a name:")
         if not note_name:
             reply = QMessageBox.question(self, 'PyQt5 message', "Name empty! wanna retry?",
@@ -185,14 +185,15 @@ class MainWidget(QWidget):
             else:
                 return
 
-        section_name = self.get_text("Section", "Which section?")
-        if not note_name:
-            reply = QMessageBox.question(self, 'PyQt5 message', "Section empty! wanna retry?",
-                                               QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.get_note_and_section_name()
-            else:
-                return
+        if section_name is None:
+            section_name = self.get_text("Section", "Which section?")
+            if not note_name:
+                reply = QMessageBox.question(self, 'PyQt5 message', "Section empty! wanna retry?",
+                                                   QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    self.get_note_and_section_name()
+                else:
+                    return
 
         section = None
         for s in self.notebook.sections:
@@ -207,9 +208,11 @@ class MainWidget(QWidget):
         section.add_note(note)
         return note, section_name
 
-    def show_note_menu(self, note=None):
-        if note is None:
-            note, section_name = self.get_note_and_section_name()
+    def show_note_menu(self, note, section_name, is_editable=False):
+        if note is None and section_name is None:
+            note, section_name = self.get_note_and_section_name(None)
+        elif note is None:
+            note, section_name = self.get_note_and_section_name(section_name)
 
         # reminder button
         remind_note = QPushButton("یادآوری")
@@ -246,6 +249,7 @@ class MainWidget(QWidget):
         wid.setLayout(layout_topbar)
 
         text_box = QPlainTextEdit(self)
+        text_box.setEnabled(is_editable)
 
         if isinstance(note, Note):
             text_box.setPlainText(note.data)
@@ -259,11 +263,16 @@ class MainWidget(QWidget):
         self.layout.setSpacing(100)
 
         remind_note.clicked.connect(lambda: self.set_note_reminder(note))
-        save_note.clicked.connect(lambda: self.handle_save_note(note, text_box.toPlainText()))
+        save_note.clicked.connect(lambda: self.handle_save_note(note, section_name, text_box.toPlainText()))
+        delete_note.clicked.connect(lambda: self.handle_delete_note(section_name, note.name))
+        edit_note.clicked.connect(lambda: self.set_editable(note, section_name))
 
-    def handle_save_note(self, note, data):
+    def set_editable(self, note, section_name):
+        self.show_note_menu(note, section_name, True)
+
+    def handle_save_note(self, note, section_name, data):
         note.data = data
-        self.show_note_menu()
+        self.show_notes_list(section_name)
         # TODO: tell Django about changes in some sort of way
 
     def set_note_reminder(self, note):
@@ -280,8 +289,6 @@ class MainWidget(QWidget):
         date = QDateTime()
 
         # TODO: tell Django to set a timer to send email when the time comes
-
-
 
     def show_sections_list(self):
         # quit button
@@ -341,6 +348,12 @@ class MainWidget(QWidget):
         # TODO: communicate with Django to delete the section on Django in a way
 
     def show_notes_list(self, section_name):
+        # section name
+        section_label = QPushButton(section_name)
+        section_label.setSizePolicy(QSizePolicy.Preferred,
+                                    QSizePolicy.Preferred)
+        section_label.setStyleSheet("background-color: rgb(228, 210, 86)")
+
         # quit button
         new_note = QPushButton("ایجاد یادداشت جدید")
         new_note.setSizePolicy(QSizePolicy.Preferred,
@@ -348,10 +361,10 @@ class MainWidget(QWidget):
         new_note.setStyleSheet("background-color: rgb(228, 210, 86)")
 
         # delete button
-        delete_node = QPushButton("حذف")
-        delete_node.setSizePolicy(QSizePolicy.Preferred,
+        exit_button = QPushButton("خروج")
+        exit_button.setSizePolicy(QSizePolicy.Preferred,
                                   QSizePolicy.Preferred)
-        delete_node.setStyleSheet("background-color: rgb(228, 210, 86)")
+        exit_button.setStyleSheet("background-color: rgb(228, 210, 86)")
 
         for s in self.notebook.sections:
             if s.name == section_name:
@@ -374,32 +387,35 @@ class MainWidget(QWidget):
 
         self.clear_layout(self.layout)
 
-        self.layout.setRowStretch(0, 20)
+        self.layout.setRowStretch(0, 2)
         self.layout.setRowStretch(1, 5)
-        self.layout.addWidget(wid, 0, 2)
-        self.layout.addWidget(new_note, 1, 0)
-        self.layout.addWidget(delete_node, 1, 3)
+        self.layout.setRowStretch(2, 3)
+        self.layout.addWidget(wid, 1, 2)
+        self.layout.addWidget(new_note, 2, 0)
+        self.layout.addWidget(exit_button, 2, 3)
+        self.layout.addWidget(section_label, 0, 2)
         self.layout.setSpacing(50)
 
         # set action for each node
         for (btn, note) in buttons:
-            btn.clicked.connect(lambda: self.show_note_menu(note))
-        new_note.clicked.connect(lambda: self.show_note_menu(None))
-        delete_node.clicked.connect(lambda: self.handle_delete_note(section_name))
+            btn.clicked.connect(lambda: self.show_note_menu(note, section_name))
+        new_note.clicked.connect(lambda: self.show_note_menu(None, section_name))
+        exit_button.clicked.connect(self.show_sections_list)
 
-    def handle_delete_note(self, section_name):
-        note_name = self.get_text("Delete Note", "Note name:")
-        if not note_name:
-            reply = QMessageBox.question(self, 'PyQt5 message', "Section name empty! wanna retry?",
-                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.handle_delete_section()
-            else:
-                return
+    def handle_delete_note(self, section_name, note_name):
+        if note_name is None:
+            note_name = self.get_text("Delete Note", "Note name:")
+            if not note_name:
+                reply = QMessageBox.question(self, 'PyQt5 message', "Section name empty! wanna retry?",
+                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    self.handle_delete_section()
+                else:
+                    return
 
         for s in self.notebook.sections:
             if s.name == section_name:
-                s.del_note()
+                s.del_note(note_name)
                 break
 
         self.show_notes_list(section_name)

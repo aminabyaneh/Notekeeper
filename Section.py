@@ -6,7 +6,7 @@ class Section:
     def add_note(self, note):
         self.notes.append(note)
 
-    def del_note(self, note_uid):
+    def del_note(self, note_name):
         for n in self.notes:
-            if n.uid == note_uid:
+            if n.name == note_name:
                 self.notes.remove(n)
