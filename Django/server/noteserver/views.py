@@ -1,8 +1,9 @@
+
+import json
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
-from accounts.models import Note, Folder
+from noteserver.models import Notebook
 from django.forms.models import model_to_dict
-import json
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from django.middleware.csrf import get_token
@@ -10,7 +11,7 @@ from django.middleware.csrf import get_token
 # Create your views here.
 
 @require_http_methods(["GET", "POST"])
-def login(request):
+def login_user(request):
     if request.method == "GET":
         response = HttpResponse(json.dumps({'csrf status': 'active', 'csrfchip': get_token(request)}), status=200)
         return response
@@ -26,15 +27,25 @@ def login(request):
             response = HttpResponse('Login Failed. Invalid username or password.', status=401)
         return response
 
+@require_POST
+def logout_user(request):
+    if request.user.is_authenticated:
+        logout(request)
+        response = HttpResponse('Logout Successful', status=200)
+    else:
+        response = HttpResponse('You haven''t been logged in!!!', status=401)
+    return response
+
 
 @require_POST
-def signup(request):
-    if 'email' not in request.json or 'password' not in request.json:
+def signup_user(request):
+    json_received = json.loads(request.body)
+    if 'username' not in json_received or 'password' not in json_received:
         response = HttpResponse('Not enough data', status=400)
-    elif User.objects.filter(username=request.json['username']).exists():
-        response = HttpResponse('Email already in use', status=409)
+    elif User.objects.filter(username=json_received['username']).exists():
+        response = HttpResponse('Email already in use :(', status=409)
     else:
-        user = User.objects.create_user(email=request.json['email'], password=request.json['password'])
+        user = User.objects.create_user(username=json_received['username'], password=json_received['password'])
         user.save()
         response = HttpResponse('Signup was successful :)', status=200)
     return response

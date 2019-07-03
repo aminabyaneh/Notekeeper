@@ -21,8 +21,3 @@ class Notebook(models.Model):
     min_m = models.IntegerField()
     s_m = models.IntegerField()
 
-
-class Folder(models.Model):
-    name = models.CharField(max_length=256)
-    list_notes = models.TextField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)

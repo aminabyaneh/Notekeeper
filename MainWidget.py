@@ -12,12 +12,14 @@ from PyQt5.QtGui import QColor
 from Notebook import Notebook
 from Note import Note
 from Section import Section
+from Network import Network
 
 
 class MainWidget(QWidget):
     def __init__(self):
         self.layout = None
-        self.notebook = Notebook()
+        self.notebook = None
+        self.network = Network()
         self.show_login_page()
 
     @staticmethod
