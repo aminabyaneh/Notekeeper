@@ -1,6 +1,9 @@
 import pickle
 import requests
 import json
+from Notebook import Notebook
+from Note import Note
+from Section import Section
 
 
 class Network:
@@ -29,6 +32,16 @@ class Network:
         else:
             print("No type other than GET or POST is supported yet")
 
+    def send_request_c(self, url_page, dict_data, type_request):
+        headers = {'Content-type': 'application/json', "X-CSRFToken": self.token, "Referer": (self.url + url_page)}
+        dict_data['csrfmiddlewaretoken'] = self.token
+        if type_request is "POST":
+            return self.server.post(self.url + url_page, data=json.dumps(dict_data), headers=headers)
+        elif type_request is "GET":
+            return self.server.get(self.url + url_page, data=json.dumps(dict_data), headers=headers)
+        else:
+            print("No type other than GET or POST is supported yet")
+
     def login_user(self, username, password):
         res = self.send_request("login/", {"username": username, "password": password}, "POST")
         self.refresh_csrf()
@@ -45,13 +58,46 @@ class Network:
         print(res.text)
         return (res.status_code == 200), res.text, res.status_code
 
+    def create_notebook(self, notebook):
+        print(notebook.username)
+        res = self.send_request("create/", {"name": notebook.username, "data": "empty"}, "POST")
+        print(res.text)
+        return (res.status_code == 200), res.text, res.status_code
+
     def update_notebook(self, notebook):
-        str_notebook = pickle.dumps(notebook)
-        res = self.send_request("note/add/", {"notebook": str_notebook}, "POST")
+        print(notebook.username)
+        json_notebook = self.notebook_to_json(notebook)
+        res = self.send_request("update/", {"name": notebook.username, "data": json_notebook}, "POST")
         print(res.text)
         return (res.status_code == 200), res.text, res.status_code
 
     def download_notebook(self, username):
-        res = self.send_request("note/get/", {"name": username}, "GET")
-        return (res.status_code == 200), res.json(), res.status_code
+        print(username)
+        res = self.send_request("get/", {"name": username}, "GET")
+        print(json.loads(res.text))
+        json_notebook = json.loads(res.text)['data']
+        if res.status_code == 200:
+            return Network.json_to_notebook(json_notebook)
+        else:
+            return None
 
+    @staticmethod
+    def json_to_notebook(nb):
+        nb = json.loads(nb)
+        notebook = Notebook(nb[0])
+
+        for s in nb[1]:
+            print(s[0])
+            notebook.add_section(Section(s[0]))
+            for n in s[1]:
+                print(n)
+                notebook.sections[-1].add_note(Note(n[0], n[1]))
+        return notebook
+
+    @staticmethod
+    def notebook_to_json(notebook):
+        sections = []
+        for s in notebook.sections:
+            sections.append((s.name, [(n.name, n.data) for n in s.notes]))
+        nb = [notebook.username, sections]
+        return json.dumps(nb)

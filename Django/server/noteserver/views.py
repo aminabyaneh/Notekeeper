@@ -9,7 +9,6 @@ from django.views.decorators.http import require_POST, require_GET, require_http
 from django.middleware.csrf import get_token
 
 # Create your views here.
-
 @require_http_methods(["GET", "POST"])
 def login_user(request):
     if request.method == "GET":
@@ -50,44 +49,44 @@ def signup_user(request):
         response = HttpResponse('Signup was successful :)', status=200)
     return response
 
+@require_POST
+def create_notebook(request):
+    json_received = json.loads(request.body)
+    if not request.user.is_authenticated:
+        response = HttpResponse('Not signed in :(', status=403)
+    elif Notebook.objects.filter(name=json_received['name'], user=request.user).exists():
+        response = HttpResponse('Notebook already exists :(', status=409)
+    else:
+        notebook = Notebook.objects.create(name=json_received['name'], data=json_received['data'])
+        notebook.user = request.user
+        notebook.save()
+        response = HttpResponse('Notebook created successfully :)', status=200)
+    return response
 
 @require_POST
 def update_notebook(request):
+    json_received = json.loads(request.body)
     if not request.user.is_authenticated:
-        response = HttpResponse('Not signed in', status=403)
-    elif not Folder.objects.filter(name=request.json['folder_name']).exists():
-        response = HttpResponse('No folder with said name', status=400)
-    elif Note.objects.filter(name=request.json['name'], folder_name=request.get['folder_name'],
-                             user=request.user).exists():
-        response = HttpResponse('Notebook already exists already', status=409)
+        response = HttpResponse('Not signed in :(', status=403)
+    elif not Notebook.objects.filter(name=json_received['name'], user=request.user).exists():
+        response = HttpResponse('Notebook does not exist :(', status=409)
     else:
-        note = Notebook.objects.create(name=request.json['name'], folder_name=request.json['folder_name'],
-                                   data=request.json['data'])
-        note.user = request.user
-        note.y_m = int(request.json['y_m'])
-        note.m_m = int(request.json['m_m'])
-        note.d_m = int(request.json['d_m'])
-        note.h_m = int(request.json['h_m'])
-        note.min_m = int(request.json['min_m'])
-        note.s_m = int(request.json['s_m'])
-        if 'y_r' in request.json:
-            note.y_r = int(request.json['y_r'])
-            note.m_r = int(request.json['m_r'])
-            note.d_r = int(request.json['d_r'])
-            note.h_r = int(request.json['h_r'])
-            note.min_r = int(request.json['min_r'])
-            note.s_r = int(request.json['s_r'])
-        else:
-            note.y_r = 0
-            note.m_r = 0
-            note.d_r = 0
-            note.h_r = 0
-            note.min_r = 0
-            note.s_r = 0
-        note.save()
-        folder = Folder.objects.filter(folder_name=note.folder_name)
-        folder.list_notes = folder.list_notes + "," + note.name
-        folder.save()
-        response = HttpResponse('Note saved successfully', status=200)
+        notebook = Notebook.objects.filter(name=json_received['name'], user=request.user).first()
+        notebook.data = json_received['data']
+        notebook.save()
+        response = HttpResponse('Notebook updated successfully :)', status=200)
     return response
+
+@require_GET
+def get_notebook(request):
+    json_received = json.loads(request.body)
+    if not request.user.is_authenticated:
+        response = HttpResponse('Not signed in :(', status=403)
+    elif not Notebook.objects.filter(name=json_received['name'], user=request.user).exists():
+        response = HttpResponse('Note book does not exist :(', status=404)
+    else:
+        notebook = Notebook.objects.filter(name=json_received['name'], user=request.user).first()
+        response = HttpResponse(json.dumps(model_to_dict(notebook)), status=200)
+    return response
+
 
