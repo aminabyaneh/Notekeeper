@@ -10,3 +10,6 @@ class Notebook:
         for s in self.sections:
             if s.name == section_name:
                 self.sections.remove(s)
+                return True
+        return False
+

@@ -110,5 +110,6 @@ def send_reminder(email, name, data):
         while time.time() < timeout:
             time.sleep(1)
             continue
-        res = send_mail("Reminder", "Hi!\nyou have a reminder for note " + name, "aminabyaneh@gmail.com", [email])
+        res = send_mail("Reminder", "Hi!\nyou have a reminder for note " + name + "\nBests\nNotekeeper",
+                        "aminabyaneh@gmail.com", [email])
 

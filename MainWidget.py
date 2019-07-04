@@ -7,14 +7,15 @@ Created on May 23, 2019
 from PyQt5.QtWidgets import (QPushButton, QPlainTextEdit, QVBoxLayout,
                              QHBoxLayout, QWidget, QGridLayout, QInputDialog,
                              QLineEdit, QMessageBox, QSizePolicy)
-from PyQt5.QtCore import QDateTime
 from PyQt5.QtGui import QColor
 from Notebook import Notebook
 from Note import Note
 from Section import Section
 from Network import Network
+from functools import partial
 import time
 import datetime
+
 
 class MainWidget(QWidget):
     def __init__(self):
@@ -75,18 +76,18 @@ class MainWidget(QWidget):
         return None
 
     def handle_login(self, create_new=False):
-        username = self.get_text("Login", "Email:")
+        username = self.get_text("ورود", "ایمیل:")
         if not username:
-            reply = QMessageBox.question(self, 'Message', "Email empty! wanna retry?",
+            reply = QMessageBox.question(self, 'پیام', "ایمیل خالی است. دوباره امتحان میکنید؟",
                                                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.handle_login()
             else:
                 return
 
-        password = self.get_text("Login", "Password:")
+        password = self.get_text("ورود", "رمز:")
         if not password:
-            reply = QMessageBox.question(self, 'Message', "Password empty! wanna retry?",
+            reply = QMessageBox.question(self, 'پیام', "رمز خالی است. دوباره امتحان میکنید؟",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.handle_login()
@@ -94,7 +95,7 @@ class MainWidget(QWidget):
                 return
 
         ret = self.network.login_user(username, password)
-        QMessageBox.about(self, 'Message', ret[1])
+        QMessageBox.about(self, 'پیام', ret[1])
         if not ret[0]:
             return
 
@@ -102,23 +103,22 @@ class MainWidget(QWidget):
         if create_new:
             self.network.create_notebook(self.notebook)
         else:
-            print('HERE')
             self.notebook = self.network.download_notebook(username=username)
         self.show_main_menu()
 
     def handle_signup(self):
-        username = self.get_text("Sign up", "Email:")
+        username = self.get_text("ثبت نام", "ایمیل:")
         if not username:
-            reply = QMessageBox.question(self, 'Message', "Email empty! wanna retry?",
+            reply = QMessageBox.question(self, 'پیام', "ایمیل خالی است. دوباره امتحان میکنید؟",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.handle_login()
             else:
                 return
 
-        password = self.get_text("Sign up", "Password:")
+        password = self.get_text("ثبت نام", "رمز:")
         if not password:
-            reply = QMessageBox.question(self, 'Message', "Password empty! wanna retry?",
+            reply = QMessageBox.question(self, 'پیام', "رمز خالی است. دوباره امتحان میکنید؟",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.handle_login()
@@ -126,16 +126,16 @@ class MainWidget(QWidget):
                 return
 
         ret = self.network.signup_user(username, password)
-        QMessageBox.about(self, 'Message', ret[1] + ' Please login!')
         if not ret[0]:
+            QMessageBox.about(self, 'پیام', 'ثبت نام ناموفق بود')
             return
 
-        # successful signup means we should create a notebook for him
+        # successful signup means we should create a notebook
+        QMessageBox.about(self, 'پیام', 'ثبت نام موفق بود')
         self.notebook = Notebook(username=username)
         self.handle_login(create_new=True)
 
     def show_main_menu(self):
-        print('show_main_menu', self.notebook.username)
         # new note button
         new_note = QPushButton("ایجاد یادداشت جدید")
         new_note.setSizePolicy(QSizePolicy.Preferred,
@@ -178,10 +178,9 @@ class MainWidget(QWidget):
         exit_page.clicked.connect(self.quit_app)
 
     def handle_add_section(self):
-        print('handle_add_section', self.notebook.username)
-        section_name = self.get_text("New Section", "Section name:")
+        section_name = self.get_text("بخش جدید", "نام بخش:")
         if not section_name:
-            reply = QMessageBox.question(self, 'Message', "Section name empty! wanna retry?",
+            reply = QMessageBox.question(self, 'پیام', "نام بخش خالی است. دوباره امتحان میکنید؟",
                                                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.handle_add_section()
@@ -192,9 +191,9 @@ class MainWidget(QWidget):
         self.network.update_notebook(self.notebook)
 
     def get_note_and_section_name(self, section_name):
-        note_name = self.get_text("New Note", "Pick a name:")
+        note_name = self.get_text("یادداشت جدید", "نام یادداشت:")
         if not note_name:
-            reply = QMessageBox.question(self, 'Message', "Name empty! wanna retry?",
+            reply = QMessageBox.question(self, 'پیام', "نام خالی است. دوباره امتحان میکنید؟",
                                                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.get_note_and_section_name()
@@ -202,9 +201,9 @@ class MainWidget(QWidget):
                 return
 
         if section_name is None:
-            section_name = self.get_text("Section", "Which section?")
+            section_name = self.get_text("بخش", "نام بخش:")
             if not note_name:
-                reply = QMessageBox.question(self, 'Message', "Section empty! wanna retry?",
+                reply = QMessageBox.question(self, 'پیام', "نام بخش خالی است. دوباره امتحان میکنید؟",
                                                    QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                 if reply == QMessageBox.Yes:
                     self.get_note_and_section_name()
@@ -292,9 +291,9 @@ class MainWidget(QWidget):
         self.network.update_notebook(self.notebook)
 
     def set_note_reminder(self, note):
-        date = self.get_text("Reminder", "Enter time(yyyy mm dd hh mm ss):")
+        date = self.get_text("یادآوری", "(yyyy mm dd hh mm ss):")
         if not date:
-            reply = QMessageBox.question(self, 'Message', "empty! wanna retry?",
+            reply = QMessageBox.question(self, 'پیام', "زمان خالی! دوباره امتحان میکنید؟",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.set_note_reminder()
@@ -327,38 +326,41 @@ class MainWidget(QWidget):
                               QSizePolicy.Preferred)
             btn.setStyleSheet("background-color: rgb(228, 210, 86)")
             layout_topbar.addWidget(btn)
-            btn.clicked.connect(lambda: self.show_notes_list(s.name))
-            print(s.name)
+            btn.clicked.connect(partial(self.show_notes_list, s.name))
         layout_topbar.setSpacing(50)
-        
+
         wid = QWidget()
         wid.setLayout(layout_topbar)
 
         self.clear_layout(self.layout)
-
         self.layout.setRowStretch(0, 20)
         self.layout.setRowStretch(1, 5)
+        self.layout.setRowStretch(2, 5)
         self.layout.addWidget(wid, 0, 2)
-        self.layout.addWidget(exit_page, 1, 0)
-        self.layout.addWidget(delete_section, 1, 3)
-        self.layout.setSpacing(50)
+        self.layout.addWidget(exit_page, 2, 0)
+        self.layout.addWidget(delete_section, 2, 3)
+        self.layout.setSpacing(20)
 
         # set action for each button
         delete_section.clicked.connect(self.handle_delete_section)
         exit_page.clicked.connect(self.show_main_menu)
 
     def handle_delete_section(self):
-        section_name = self.get_text("Delete Section", "Section name:")
+        section_name = self.get_text("پاک کردن بخش", "نام بخش:")
         if not section_name:
-            reply = QMessageBox.question(self, 'Message', "Section name empty! wanna retry?",
+            reply = QMessageBox.question(self, 'پیام', "نام بخش خالی است. دوباره امتحان میکنید؟",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.handle_delete_section()
             else:
                 return
 
-        self.notebook.remove_section(section_name)
-        self.network.update_notebook(self.notebook)
+        ret = self.notebook.remove_section(section_name)
+        if ret:
+            self.network.update_notebook(self.notebook)
+        else:
+            QMessageBox.about(self, 'پیام', 'بخش وجود ندارد')
+
         self.show_sections_list()
 
     def show_notes_list(self, section_name):
@@ -386,7 +388,6 @@ class MainWidget(QWidget):
                 section = s
                 break
 
-        buttons = []
         layout_topbar = QVBoxLayout()
         for note in section.notes:
             btn = QPushButton(note.name)
@@ -394,35 +395,33 @@ class MainWidget(QWidget):
                               QSizePolicy.Preferred)
             btn.setStyleSheet("background-color: rgb(228, 210, 86)")
             layout_topbar.addWidget(btn)
-            buttons.append((btn, note))
-        layout_topbar.setSpacing(50)
+            btn.clicked.connect(partial(self.show_note_menu, note, section_name))
+        layout_topbar.setSpacing(20)
         
         wid = QWidget()
         wid.setLayout(layout_topbar)
 
         self.clear_layout(self.layout)
 
-        self.layout.setRowStretch(0, 2)
-        self.layout.setRowStretch(1, 5)
-        self.layout.setRowStretch(2, 3)
+        self.layout.setRowStretch(0, 1)
+        self.layout.setRowStretch(1, 6)
+        self.layout.setRowStretch(2, 2)
+        self.layout.setRowStretch(3, 2)
         self.layout.addWidget(wid, 1, 2)
-        self.layout.addWidget(new_note, 2, 0)
-        self.layout.addWidget(exit_button, 2, 3)
+        self.layout.addWidget(new_note, 3, 0)
+        self.layout.addWidget(exit_button, 3, 3)
         self.layout.addWidget(section_label, 0, 2)
         self.layout.setSpacing(50)
 
         # set action for each node
-        for (btn, note) in buttons:
-            btn.clicked.connect(lambda: self.show_note_menu(note, section_name))
         new_note.clicked.connect(lambda: self.show_note_menu(None, section_name))
         exit_button.clicked.connect(self.show_sections_list)
 
     def handle_delete_note(self, section_name, note_name):
-        print('handle_delete_note', self.notebook.username)
         if note_name is None:
-            note_name = self.get_text("Delete Note", "Note name:")
+            note_name = self.get_text("پاک کردن یادداشت", "نام یادداشت:")
             if not note_name:
-                reply = QMessageBox.question(self, 'Message', "Section name empty! wanna retry?",
+                reply = QMessageBox.question(self, 'پیام', "نام یادداشت خالی است. دوباره امتحان میکنید؟",
                                              QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                 if reply == QMessageBox.Yes:
                     self.handle_delete_note(section_name, note_name)
