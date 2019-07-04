@@ -1,5 +1,7 @@
-
+import threading
+import time
 import json
+
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from noteserver.models import Notebook
@@ -7,6 +9,7 @@ from django.forms.models import model_to_dict
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from django.middleware.csrf import get_token
+from django.core.mail import send_mail
 
 # Create your views here.
 @require_http_methods(["GET", "POST"])
@@ -89,4 +92,23 @@ def get_notebook(request):
         response = HttpResponse(json.dumps(model_to_dict(notebook)), status=200)
     return response
 
+@require_POST
+def set_timer(request):
+    if request.user.is_authenticated:
+        json_received = json.loads(request.body)
+        # email after mentioned time
+        threading.Thread(target=send_reminder, args=(json_received['username'],
+                                                     json_received['name'], 
+                                                     json_received['data'],)).start()
+        response = HttpResponse('Reminder set successfuly :)', status=200)
+    else:
+        response = HttpResponse('You are not logged in :(', status=401)
+    return response
+
+def send_reminder(email, name, data):
+        timeout = float(data)
+        while time.time() < timeout:
+            time.sleep(1)
+            continue
+        res = send_mail("Reminder", "Hi!\nyou have a reminder for note " + name, "aminabyaneh@gmail.com", [email])
 

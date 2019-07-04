@@ -13,7 +13,8 @@ from Notebook import Notebook
 from Note import Note
 from Section import Section
 from Network import Network
-
+import time
+import datetime
 
 class MainWidget(QWidget):
     def __init__(self):
@@ -291,19 +292,20 @@ class MainWidget(QWidget):
         self.network.update_notebook(self.notebook)
 
     def set_note_reminder(self, note):
-        date = self.get_text("Reminder", "Enter time(yy mm dd hh mm ss):")
+        date = self.get_text("Reminder", "Enter time(yyyy mm dd hh mm ss):")
         if not date:
             reply = QMessageBox.question(self, 'Message', "empty! wanna retry?",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                self.get_note_and_section_name()
+                self.set_note_reminder()
             else:
                 return
 
         year, month, day, hour, minute, second = date.split()
-        date = QDateTime()
 
-        # TODO: tell Django to set a timer to send email when the time comes
+        dt = datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second))
+        ret = self.network.set_timer(self.notebook.username, note.name, time.mktime(dt.timetuple()))
+        QMessageBox.about(self, 'Reminder', ret[1])
 
     def show_sections_list(self):
         # quit button

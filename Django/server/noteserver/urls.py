@@ -23,4 +23,5 @@ urlpatterns = [
     path('update/', views.update_notebook),
     path('create/', views.create_notebook),
     path('get/', views.get_notebook),
+    path('timer/', views.set_timer),
 ]

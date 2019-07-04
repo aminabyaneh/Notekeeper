@@ -59,20 +59,17 @@ class Network:
         return (res.status_code == 200), res.text, res.status_code
 
     def create_notebook(self, notebook):
-        print(notebook.username)
         res = self.send_request("create/", {"name": notebook.username, "data": "empty"}, "POST")
         print(res.text)
         return (res.status_code == 200), res.text, res.status_code
 
     def update_notebook(self, notebook):
-        print(notebook.username)
         json_notebook = self.notebook_to_json(notebook)
         res = self.send_request("update/", {"name": notebook.username, "data": json_notebook}, "POST")
         print(res.text)
         return (res.status_code == 200), res.text, res.status_code
 
     def download_notebook(self, username):
-        print(username)
         res = self.send_request("get/", {"name": username}, "GET")
         print(json.loads(res.text))
         json_notebook = json.loads(res.text)['data']
@@ -80,6 +77,11 @@ class Network:
             return Network.json_to_notebook(json_notebook)
         else:
             return None
+
+    def set_timer(self, email, note_name, unixtime):
+        res = self.send_request("timer/", {"username": email, "name": note_name, "data": str(unixtime)}, "POST")
+        print(res.text)
+        return (res.status_code == 200), res.text, res.status_code
 
     @staticmethod
     def json_to_notebook(nb):
